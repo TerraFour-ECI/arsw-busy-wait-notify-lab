@@ -3,7 +3,7 @@ package edu.eci.arsw.pc;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-/** Implementación correcta con monitores: synchronized + wait/notifyAll. */
+/** Correct implementation with monitors: synchronized + wait/notifyAll. */
 public final class BoundedBuffer<T> {
   private final Deque<T> q = new ArrayDeque<>();
   private final int capacity;
@@ -17,20 +17,20 @@ public final class BoundedBuffer<T> {
   public void put(T item) throws InterruptedException {
     synchronized (this) {
       while (q.size() == capacity) {
-        this.wait(); // espera hasta que haya espacio
+        this.wait(); // wait until there is space
       }
       q.addLast(item);
-      this.notifyAll(); // despierta consumidores
+      this.notifyAll(); // wake up consumers
     }
   }
 
   public T take() throws InterruptedException {
     synchronized (this) {
       while (q.isEmpty()) {
-        this.wait(); // espera hasta que haya elementos
+        this.wait(); // wait until there are elements
       }
       T v = q.removeFirst();
-      this.notifyAll(); // despierta productores
+      this.notifyAll(); // wake up producers
       return v;
     }
   }
