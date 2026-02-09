@@ -3,7 +3,7 @@ package edu.eci.arsw.pc;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-/** Intencionalmente incorrecta: usa busy-wait (alto CPU). */
+/** Intentionally incorrect: uses busy-wait (high CPU). */
 public final class BusySpinQueue<T> {
   private final Deque<T> q = new ArrayDeque<>();
   private final int capacity;
@@ -13,19 +13,19 @@ public final class BusySpinQueue<T> {
   }
 
   public void put(T item) {
-    // spin hasta que haya espacio
+    // spin until there is space
     while (true) {
       if (q.size() < capacity) {
         q.addLast(item);
         return;
       }
-      // espera activa
+      // busy-wait
       Thread.onSpinWait();
     }
   }
 
   public T take() {
-    // spin hasta que haya elementos
+    // spin until there are elements
     while (true) {
       T v = q.pollFirst();
       if (v != null)
