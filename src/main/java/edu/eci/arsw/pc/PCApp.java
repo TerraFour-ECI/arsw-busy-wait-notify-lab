@@ -28,33 +28,33 @@ public final class PCApp {
     else
       queue = new BoundedBuffer<Long>(capacity);
 
-    var exec = Executors.newVirtualThreadPerTaskExecutor();
-    List<Producer> prodList = new ArrayList<>();
-    List<Consumer> consList = new ArrayList<>();
-    AtomicLong produced = new AtomicLong();
-    AtomicLong consumed = new AtomicLong();
+    try (var exec = Executors.newVirtualThreadPerTaskExecutor()) {
+      List<Producer> prodList = new ArrayList<>();
+      List<Consumer> consList = new ArrayList<>();
+      AtomicLong produced = new AtomicLong();
+      AtomicLong consumed = new AtomicLong();
 
-    for (int i = 0; i < producers; i++) {
-      var p = new Producer(queue, produced, prodDelay);
-      prodList.add(p);
-      exec.submit(p);
+      for (int i = 0; i < producers; i++) {
+        var p = new Producer(queue, produced, prodDelay);
+        prodList.add(p);
+        exec.submit(p);
+      }
+      for (int i = 0; i < consumers; i++) {
+        var c = new Consumer(queue, consumed, consDelay);
+        consList.add(c);
+        exec.submit(c);
+      }
+
+      Thread.sleep(duration * 1000L);
+
+      prodList.forEach(Producer::stop);
+      consList.forEach(Consumer::stop);
+
+      System.out.printf("Produced=%d Consumed=%d QueueSize=%d%n",
+          produced.get(), consumed.get(),
+          queue instanceof BusySpinQueue<?> sp ? sp.size() : ((BoundedBuffer<?>) queue).size());
+
+      System.out.println("TIP: Compare CPU with VisualVM: spin (busy-wait) vs monitor (wait/notify).");
     }
-    for (int i = 0; i < consumers; i++) {
-      var c = new Consumer(queue, consumed, consDelay);
-      consList.add(c);
-      exec.submit(c);
-    }
-
-    Thread.sleep(duration * 1000L);
-
-    prodList.forEach(Producer::stop);
-    consList.forEach(Consumer::stop);
-    exec.close();
-
-    System.out.printf("Produced=%d Consumed=%d QueueSize=%d%n",
-        produced.get(), consumed.get(),
-        queue instanceof BusySpinQueue<?> sp ? sp.size() : ((BoundedBuffer<?>) queue).size());
-
-    System.out.println("TIP: Compare CPU with VisualVM: spin (busy-wait) vs monitor (wait/notify).");
   }
 }
