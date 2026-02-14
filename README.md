@@ -1,18 +1,47 @@
-# Parte I — Productor/Consumidor con `wait/notify` (y contraste con busy-wait)
+# Part I — Producer/Consumer with `wait/notify` (and contrast with busy-wait)
 
-## Ejecutar con **busy-wait** (alto CPU)
+## Run with **busy-wait** (high CPU)
 ```bash
-mvn -q -DskipTests exec:java -Dexec.mainClass=edu.eci.arsw.pc.PCApp \
-  -Dmode=spin -Dproducers=1 -Dconsumers=1 -Dcapacity=8 -DprodDelayMs=50 -DconsDelayMs=1 -DdurationSec=30
+mvn -q -DskipTests exec:java "-Dexec.mainClass=edu.eci.arsw.pc.PCApp \
+  -Dmode=spin -Dproducers=1 -Dconsumers=1 -Dcapacity=8 -DprodDelayMs=50 -DconsDelayMs=1 -DdurationSec=30"
 ```
 
-## Ejecutar con **monitores** (uso eficiente de CPU)
+## Run with **monitors** (efficient CPU usage)
 ```bash
-mvn -q -DskipTests exec:java -Dexec.mainClass=edu.eci.arsw.pc.PCApp \
-  -Dmode=monitor -Dproducers=1 -Dconsumers=1 -Dcapacity=8 -DprodDelayMs=50 -DconsDelayMs=1 -DdurationSec=30
+mvn -q -DskipTests exec:java "-Dexec.mainClass=edu.eci.arsw.pc.PCApp \
+  -Dmode=monitor -Dproducers=1 -Dconsumers=1 -Dcapacity=8 -DprodDelayMs=50 -DconsDelayMs=1 -DdurationSec=30"
 ```
 
-## Escenarios a validar
-1) **Productor lento / Consumidor rápido** → consumidor debe **esperar sin CPU** cuando no hay elementos.  
-2) **Productor rápido / Consumidor lento** con **límite de stock** → productor debe **esperar sin CPU** cuando la cola esté llena (capacidad pequeña, ej. 4 u 8).  
-3) Visualiza CPU con **jVisualVM** y compara `mode=spin` vs `mode=monitor`.
+## Scenarios to validate
+1) **Slow producer / Fast consumer** → consumer must **wait without CPU** when there are no elements.
+2) **Fast producer / Slow consumer** with **stock limit** → producer must **wait without CPU** when the queue is full (small capacity, e.g. 4 or 8).
+3) Visualize CPU with **jVisualVM** and compare `mode=spin` vs `mode=monitor`.
+
+---
+
+## Key Differences: `BusySpinQueue` vs `BoundedBuffer`
+
+| Aspect | `BusySpinQueue` (spin) | `BoundedBuffer` (monitor) |
+|--------|------------------------|---------------------------|
+| CPU Usage | **High** (constant spinning) | **Low** (threads sleep when waiting) |
+| Thread State | RUNNABLE (always) | WAITING/TIMED_WAITING (when idle) |
+| Mechanism | `while(true)` + `Thread.onSpinWait()` | `synchronized` + `wait()` + `notifyAll()` |
+| Efficiency | ❌ Wastes CPU cycles | ✅ Releases CPU when blocked |
+
+## Evidence Folder
+
+### Busy-wait mode (spin) — High CPU
+
+![Spin CPU](images/first-screenshot.png)
+*jVisualVM Monitor: High CPU usage with busy-wait*
+
+![Spin Threads](images/second-screenshot.png)
+*jVisualVM Threads: Threads in RUNNABLE state constantly*
+
+### Monitor mode (wait/notify) — Efficient CPU
+
+![Monitor CPU](images/third-screenshot.png)
+*jVisualVM Monitor: Low CPU usage with monitors*
+
+![Monitor Threads](images/fourth-screenshot.png)
+*jVisualVM Threads: Threads in WAITING state when idle*
